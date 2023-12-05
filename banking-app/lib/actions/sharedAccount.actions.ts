@@ -15,6 +15,7 @@ export async function createSharedAccount(
   username: string,
   image: string,
   bio: string,
+  number: string,
   createdById: string // Change the parameter name to reflect it's an id
 ) {
   try {
@@ -26,13 +27,14 @@ export async function createSharedAccount(
     if (!user) {
       throw new Error("User not found") // Handle the case if the user with the id is not found
     }
-
+    //
     const newSharedAccount = new SharedAccount({
       id,
       name,
       username,
       image,
       bio,
+      number,
       createdBy: user._id, // Use the mongoose ID of the user
     })
 
@@ -47,6 +49,23 @@ export async function createSharedAccount(
     // Handle any errors
     console.error("Error creating shared account:", error)
     throw error
+  }
+}
+
+export async function fetchSharedAccount(sharedAccountId: string) {
+  try {
+    connectToDb()
+
+    return await SharedAccount.findOne({ id: sharedAccountId }).populate([
+      "createdBy",
+      {
+        path: "members",
+        model: User,
+        select: "name username image _id id",
+      },
+    ])
+  } catch (error: any) {
+    throw new Error(`Failed to fetch shared account: ${error.message}`)
   }
 }
 

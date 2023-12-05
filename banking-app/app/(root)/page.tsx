@@ -5,11 +5,17 @@ import {
   calculateExpenses,
   calculateIncomes,
 } from "@/lib/actions/transaction.actions"
+import { fetchUser } from "@/lib/actions/user.actions"
+import { redirect } from "next/navigation"
 
 export default async function Home() {
   const user = await currentUser()
 
-  if (!user) return null
+  if (!user) return redirect("/sign-in")
+
+  const userInfo = await fetchUser(user.id)
+
+  if (!userInfo?.onboarded) redirect("/onboarding")
 
   const userIban = user?.id.split("_")[1]
   const bankAccount = await fetchBankAccount(userIban)

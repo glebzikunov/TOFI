@@ -62,8 +62,6 @@ function MakeTransaction({ userId }: Params) {
 
   return (
     <>
-      <h1>Make Transaction Form</h1>
-
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}

@@ -6,26 +6,25 @@ const sharedAccountSchema = new mongoose.Schema({
   name: { type: String, required: true },
   image: String,
   bio: String,
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-  },
+  number: { type: String, required: true },
+  balance: { type: Number, default: 0 },
   transactions: [
     {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Transaction",
     },
   ],
-  bankAccount: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Iban",
-  },
   members: [
     {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Iban",
+      ref: "User",
     },
   ],
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
+  createdAt: { type: Date, default: Date.now },
 })
 
 const SharedAccount =

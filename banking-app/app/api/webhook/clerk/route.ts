@@ -14,9 +14,15 @@ import {
   addMemberToSharedAccount,
   createSharedAccount,
   deleteSharedAccount,
+  fetchSharedAccount,
   removeUserFromSharedAccount,
   updateSharedAccountInfo,
 } from "@/lib/actions/sharedAccount.actions"
+import { createIban } from "@/lib/actions/iban.actions"
+import { usePathname } from "next/navigation"
+import { fetchUser } from "@/lib/actions/user.actions"
+
+const pathname = usePathname()
 
 // Resource: https://clerk.com/docs/integration/webhooks#supported-events
 // Above document lists the supported events
@@ -76,6 +82,8 @@ export const POST = async (request: Request) => {
         slug,
         logo_url || image_url,
         "org bio",
+        // @ts-ignore
+        id.split("_")[1],
         created_by
       )
 
@@ -144,9 +152,10 @@ export const POST = async (request: Request) => {
       const { organization, public_user_data } = evnt?.data
       console.log("removed", evnt?.data)
 
-      // @ts-ignore
       await removeUserFromSharedAccount(
+        // @ts-ignore
         public_user_data.user_id,
+        // @ts-ignore
         organization.id
       )
 
