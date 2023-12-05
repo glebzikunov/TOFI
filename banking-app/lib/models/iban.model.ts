@@ -4,13 +4,8 @@ const ibanSchema = new mongoose.Schema({
   number: { type: String, required: true },
   balance: { type: Number, default: 0 },
   owner: {
-    type: [mongoose.Schema.Types.ObjectId],
-    refPath: "owner_type",
-    required: true,
-  },
-  owner_type: {
-    type: String,
-    enum: ["User", "SharedAccount"],
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
     required: true,
   },
   createdAt: { type: Date, default: Date.now },

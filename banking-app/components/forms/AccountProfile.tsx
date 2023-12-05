@@ -103,7 +103,6 @@ const AccountProfile = ({ user, btnTitle }: Params) => {
     await createIban({
       number: user.id.split("_")[1],
       owner: createdUser._id,
-      ownerType: "User",
       path: pathname,
     })
 

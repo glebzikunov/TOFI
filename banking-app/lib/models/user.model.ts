@@ -24,7 +24,7 @@ const userSchema = new mongoose.Schema({
       ref: "SharedAccount",
     },
   ],
-  creditAccount: [
+  creditAccounts: [
     {
       type: mongoose.Schema.Types.ObjectId,
       ref: "CreditAccount",

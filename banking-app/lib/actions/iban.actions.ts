@@ -4,21 +4,14 @@ import { revalidatePath } from "next/cache"
 import User from "../models/user.model"
 import { connectToDb } from "../mongoose"
 import Iban from "../models/iban.model"
-import SharedAccount from "../models/sharedAccount.model"
 
 interface Params {
   number: string
   owner: string
-  ownerType: string
   path: string
 }
 
-export async function createIban({
-  number,
-  owner,
-  ownerType = "User",
-  path,
-}: Params) {
+export async function createIban({ number, owner, path }: Params) {
   try {
     connectToDb()
 
@@ -27,15 +20,9 @@ export async function createIban({
       owner,
     })
 
-    if (ownerType === "User") {
-      await User.findByIdAndUpdate(owner, {
-        $set: { bankAccount: createdIban._id },
-      })
-    } else {
-      await SharedAccount.findByIdAndUpdate(owner, {
-        $set: { bankAccount: createdIban._id },
-      })
-    }
+    await User.findByIdAndUpdate(owner, {
+      $set: { bankAccount: createdIban._id },
+    })
 
     revalidatePath(path)
   } catch (error: any) {

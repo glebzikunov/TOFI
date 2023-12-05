@@ -14,6 +14,7 @@ import {
   addMemberToSharedAccount,
   createSharedAccount,
   deleteSharedAccount,
+  fetchSharedAccount,
   removeUserFromSharedAccount,
   updateSharedAccountInfo,
 } from "@/lib/actions/sharedAccount.actions"
@@ -76,6 +77,8 @@ export const POST = async (request: Request) => {
         slug,
         logo_url || image_url,
         "org bio",
+        // @ts-ignore
+        id.split("_")[1],
         created_by
       )
 
@@ -144,9 +147,10 @@ export const POST = async (request: Request) => {
       const { organization, public_user_data } = evnt?.data
       console.log("removed", evnt?.data)
 
-      // @ts-ignore
       await removeUserFromSharedAccount(
+        // @ts-ignore
         public_user_data.user_id,
+        // @ts-ignore
         organization.id
       )
 
