@@ -18,11 +18,6 @@ import {
   removeUserFromSharedAccount,
   updateSharedAccountInfo,
 } from "@/lib/actions/sharedAccount.actions"
-import { createIban } from "@/lib/actions/iban.actions"
-import { usePathname } from "next/navigation"
-import { fetchUser } from "@/lib/actions/user.actions"
-
-const pathname = usePathname()
 
 // Resource: https://clerk.com/docs/integration/webhooks#supported-events
 // Above document lists the supported events
