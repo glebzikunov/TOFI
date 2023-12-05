@@ -14,7 +14,6 @@ import {
   addMemberToSharedAccount,
   createSharedAccount,
   deleteSharedAccount,
-  fetchSharedAccount,
   removeUserFromSharedAccount,
   updateSharedAccountInfo,
 } from "@/lib/actions/sharedAccount.actions"

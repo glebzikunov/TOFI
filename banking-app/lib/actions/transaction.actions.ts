@@ -7,9 +7,9 @@ import { connectToDb } from "../mongoose"
 import Iban from "../models/iban.model"
 import { fetchUserById } from "./user.actions"
 import { fetchBankAccount } from "./iban.actions"
+import SharedAccount from "../models/sharedAccount.model"
 
 interface Params {
-  senderAccount: string
   receiverAccount: string
   transactionAmount: number
   description: string
@@ -19,7 +19,6 @@ interface Params {
 }
 
 export async function makeTransaction({
-  senderAccount,
   receiverAccount,
   transactionAmount,
   description,
@@ -30,61 +29,135 @@ export async function makeTransaction({
   try {
     connectToDb()
 
+    const sharedAccountIdObject = await SharedAccount.findOne(
+      {
+        id: sharedAccountId,
+      },
+      { _id: 1 }
+    )
+
     const user = await fetchUserById(author)
     const receiver = await fetchBankAccount(receiverAccount)
+    const receiverIsSharedAccount = await SharedAccount.findOne({
+      number: receiverAccount,
+    })
 
-    if (user.bankAccount.number !== senderAccount) {
-      throw new Error(`You don't own that ${senderAccount} account!`)
+    if (!receiver && !receiverIsSharedAccount) {
+      throw new Error(`This ${receiverAccount} account doesn't exists!`)
+    } else if (
+      sharedAccountIdObject &&
+      sharedAccountIdObject.balance < transactionAmount
+    ) {
+      throw new Error(`You don't have enough money on this shared account!`)
     } else if (user.bankAccount.balance < transactionAmount) {
       throw new Error(`You don't have enough money!`)
-    } else if (!receiver) {
-      throw new Error(`This ${receiverAccount} account doesn't exists!`)
     }
 
-    const senderTransaction = await Transaction.create({
-      senderAccount,
-      receiverAccount,
-      transactionAmount,
-      description,
-      author,
-      sharedAccount: null,
-      type: "expense",
-    })
+    if (sharedAccountIdObject) {
+      const senderTransaction = await Transaction.create({
+        senderAccount: sharedAccountIdObject.number,
+        receiverAccount,
+        transactionAmount,
+        description,
+        author,
+        sharedAccount: sharedAccountIdObject,
+        type: "expense",
+      })
 
-    await User.findByIdAndUpdate(author, {
-      $push: { transactions: senderTransaction._id },
-    })
+      await User.findByIdAndUpdate(author, {
+        $push: { transactions: senderTransaction._id },
+      })
 
-    await Iban.findOneAndUpdate(
-      { number: senderAccount },
-      {
+      await SharedAccount.findByIdAndUpdate(sharedAccountIdObject._id, {
+        $push: { transactions: senderTransaction._id },
         $inc: { balance: -transactionAmount },
+      })
+
+      const receiverTransaction = await Transaction.create({
+        senderAccount: sharedAccountIdObject.number,
+        receiverAccount,
+        transactionAmount,
+        description,
+        author,
+        sharedAccount: sharedAccountIdObject,
+        type: "income",
+      })
+
+      if (receiverIsSharedAccount) {
+        await SharedAccount.findOneAndUpdate(
+          { number: receiverAccount },
+          {
+            $push: { transactions: receiverTransaction._id },
+            $inc: { balance: transactionAmount },
+          }
+        )
+      } else {
+        await User.findOneAndUpdate(
+          { bankAccount: receiver._id },
+          { $push: { transactions: receiverTransaction._id } }
+        )
+
+        await Iban.findOneAndUpdate(
+          { number: receiverAccount },
+          {
+            $inc: { balance: transactionAmount },
+          }
+        )
       }
-    )
+    } else {
+      const senderTransaction = await Transaction.create({
+        senderAccount: user.bankAccount.number,
+        receiverAccount,
+        transactionAmount,
+        description,
+        author,
+        sharedAccount: sharedAccountIdObject,
+        type: "expense",
+      })
 
-    const receiverTransaction = await Transaction.create({
-      senderAccount,
-      receiverAccount,
-      transactionAmount,
-      description,
-      author,
-      sharedAccount: null,
-      type: "income",
-    })
+      await User.findByIdAndUpdate(author, {
+        $push: { transactions: senderTransaction._id },
+      })
 
-    const receiverIban = await Iban.findOne({ number: receiverAccount })
+      await Iban.findOneAndUpdate(
+        { number: user.bankAccount.number },
+        {
+          $inc: { balance: -transactionAmount },
+        }
+      )
 
-    await User.findOneAndUpdate(
-      { bankAccount: receiverIban._id },
-      { $push: { transactions: receiverTransaction._id } }
-    )
+      const receiverTransaction = await Transaction.create({
+        senderAccount: user.bankAccount.number,
+        receiverAccount,
+        transactionAmount,
+        description,
+        author,
+        sharedAccount: sharedAccountIdObject,
+        type: "income",
+      })
 
-    await Iban.findOneAndUpdate(
-      { number: receiverAccount },
-      {
-        $inc: { balance: transactionAmount },
+      if (receiverIsSharedAccount) {
+        await SharedAccount.findOneAndUpdate(
+          { number: receiverAccount },
+          {
+            $push: { transactions: receiverTransaction._id },
+            $inc: { balance: transactionAmount },
+          }
+        )
+      } else {
+        await User.findOneAndUpdate(
+          { bankAccount: receiver._id },
+          { $push: { transactions: receiverTransaction._id } }
+        )
+
+        await Iban.findOneAndUpdate(
+          { number: receiverAccount },
+          {
+            $inc: { balance: transactionAmount },
+          }
+        )
       }
-    )
+    }
 
     revalidatePath(path)
   } catch (error: any) {
@@ -94,15 +167,9 @@ export async function makeTransaction({
   }
 }
 
-export async function fetchTransactions(
-  iban: string,
-  pageNumber = 1,
-  pageSize = 20
-) {
+export async function fetchTransactions(iban: string) {
   try {
     connectToDb()
-
-    const skipAmount = (pageNumber - 1) * pageSize
 
     const transactionsQuery = Transaction.find({
       $or: [
@@ -111,23 +178,13 @@ export async function fetchTransactions(
       ],
     })
       .sort({ timestamp: "desc" })
-      .skip(skipAmount)
-      .limit(pageSize)
       .populate({ path: "author", model: User })
 
-    const totalTransactionsCount = await Transaction.countDocuments({
-      $or: [
-        { senderAccount: iban, type: "expense" },
-        { receiverAccount: iban, type: "income" },
-      ],
-    })
-
     const transactions = await transactionsQuery.exec()
-    const isNext = totalTransactionsCount > skipAmount + transactions.length
 
-    return { transactions, isNext }
+    return transactions
   } catch (error: any) {
-    throw new Error(`Failed to fetch user transactions: ${error.message}`)
+    throw new Error(`Failed to fetch transactions: ${error.message}`)
   }
 }
 

@@ -14,7 +14,7 @@ async function Page({ params }: { params: { id: string } }) {
   if (!user) return null
 
   const userIban = user?.id.split("_")[1]
-  const result = await fetchTransactions(userIban, 1, 10)
+  const result = await fetchTransactions(userIban)
 
   const userInfo = await fetchUser(params.id)
 
@@ -46,7 +46,7 @@ async function Page({ params }: { params: { id: string } }) {
                   <p className="max-sm:hidden">{tab.label}</p>
                   {tab.label === "Transactions" && (
                     <p className="ml-1 rounded-sm bg-light-4 px-2 py-1 !text-tiny-medium text-light-2">
-                      {result?.transactions.length}
+                      {result?.length}
                     </p>
                   )}
                 </TabsTrigger>

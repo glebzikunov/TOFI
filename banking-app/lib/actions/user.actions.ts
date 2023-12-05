@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import User from "../models/user.model"
 import { connectToDb } from "../mongoose"
 import Iban from "../models/iban.model"
+import SharedAccount from "../models/sharedAccount.model"
 
 interface Params {
   userId: string
@@ -49,11 +50,10 @@ export async function fetchUser(userId: string) {
   try {
     connectToDb()
 
-    return await User.findOne({ id: userId })
-    // .populate({
-    //   path: "sharedAccounts",
-    //   model: "SharedAccount",
-    // })
+    return await User.findOne({ id: userId }).populate({
+      path: "sharedAccounts",
+      model: SharedAccount,
+    })
   } catch (error: any) {
     throw new Error(`Failed to fetch user: ${error.message}`)
   }
@@ -69,12 +69,12 @@ export async function fetchUserById(userId: string) {
         model: Iban,
         select: "number balance",
       })
+      .populate({
+        path: "sharedAccounts",
+        model: SharedAccount,
+        select: "number balance",
+      })
       .exec()
-    // .populate({
-    //   path: "sharedAccounts",
-    //   model: SharedAccount,
-    //   select: "number",
-    // })
     return user
   } catch (error: any) {
     throw new Error(`Failed to fetch user by id: ${error.message}`)

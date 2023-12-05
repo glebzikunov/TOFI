@@ -18,6 +18,7 @@ import * as z from "zod"
 import { usePathname, useRouter } from "next/navigation"
 import { TransactionValidation } from "@/lib/validations/transaction"
 import { makeTransaction } from "@/lib/actions/transaction.actions"
+import { useOrganization } from "@clerk/nextjs"
 
 interface Params {
   userId: string
@@ -26,11 +27,11 @@ interface Params {
 function MakeTransaction({ userId }: Params) {
   const router = useRouter()
   const pathname = usePathname()
+  const { organization } = useOrganization()
 
   const form = useForm({
     resolver: zodResolver(TransactionValidation),
     defaultValues: {
-      senderAccount: "",
       receiverAccount: "",
       transactionAmount: 0.5,
       description: "",
@@ -43,12 +44,11 @@ function MakeTransaction({ userId }: Params) {
 
     if (transactionComfirmed) {
       const result = await makeTransaction({
-        senderAccount: values.senderAccount,
         receiverAccount: values.receiverAccount,
         transactionAmount: values.transactionAmount,
         description: values.description,
         author: userId,
-        sharedAccountId: null,
+        sharedAccountId: organization ? organization.id : null,
         path: pathname,
       })
 
@@ -67,21 +67,6 @@ function MakeTransaction({ userId }: Params) {
           onSubmit={form.handleSubmit(onSubmit)}
           className="mt-10 flex flex-col justify-start gap-10"
         >
-          <FormField
-            control={form.control}
-            name="senderAccount"
-            render={({ field }) => (
-              <FormItem className="flex flex-col w-full gap-3">
-                <FormLabel className="text-base-semibold text-light-2">
-                  Your Bank Account
-                </FormLabel>
-                <FormControl className="no-focus border border-dark-4 bg-dark-3 text-light-1">
-                  <Input type="text" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
           <FormField
             control={form.control}
             name="receiverAccount"
