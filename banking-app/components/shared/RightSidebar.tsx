@@ -8,7 +8,7 @@ async function RightSidebar() {
   if (!user) return null
 
   const userIban = user?.id.split("_")[1]
-  const result = await fetchTransactions(userIban, 1, 3)
+  const result = await fetchTransactions(userIban)
 
   return (
     <section className="custom-scrollbar rightsidebar">
@@ -22,11 +22,11 @@ async function RightSidebar() {
           Recent Transcations
         </h3>
         <div className="flex flex-col gap-10">
-          {result.transactions.length === 0 ? (
+          {result.length === 0 ? (
             <p className="no-result">No results.</p>
           ) : (
             <>
-              {result.transactions.map((transaction) => (
+              {result.map((transaction) => (
                 <TransactionCard
                   key={transaction._id}
                   id={transaction._id}

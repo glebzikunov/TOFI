@@ -7,15 +7,15 @@ interface Props {
 }
 
 const TransactionsTab = async ({ currentUserId, iban }: Props) => {
-  let result = await fetchTransactions(iban, 1, 10)
+  let result = await fetchTransactions(iban)
 
   return (
     <section className="mt-9 flex flex-col gap-5">
-      {result.transactions.length === 0 ? (
+      {result.length === 0 ? (
         <p className="no-result">No results.</p>
       ) : (
         <>
-          {result.transactions.map((transaction) => (
+          {result.map((transaction) => (
             <TransactionCard
               key={transaction._id}
               id={transaction._id}

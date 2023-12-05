@@ -56,10 +56,6 @@ const TransactionCard = ({
                   {author.name}
                 </h4>
               </Link>
-              <p className="mt-2 text-subtle-medium text-gray-1 max-sm:hidden">
-                {formatDateString(createdAt)}
-                {sharedAccount && ` - ${sharedAccount.name} Account`}
-              </p>
             </div>
             <div className="flex items-center justify-center">
               {type === "income" ? (
@@ -79,10 +75,28 @@ const TransactionCard = ({
           </div>
         </div>
       </div>
-      <p className="mt-2 text-subtle-medium text-gray-1 sm:hidden">
-        {formatDateString(createdAt)}
-        {sharedAccount && ` - ${sharedAccount.name} Account`}
-      </p>
+      {sharedAccount ? (
+        <Link
+          href={`/shared-accounts/${sharedAccount.id}`}
+          className="mt-5 flex items-center"
+        >
+          <p className="text-subtle-medium text-gray-1">
+            {formatDateString(createdAt)}
+            {` - ${sharedAccount.name} Shared Account`}
+          </p>
+          <Image
+            src={sharedAccount.image}
+            alt={sharedAccount.name}
+            width={14}
+            height={14}
+            className="ml-1 rounded-full object-cover"
+          />
+        </Link>
+      ) : (
+        <p className="mt-5 text-subtle-medium text-gray-1">
+          {formatDateString(createdAt)}
+        </p>
+      )}
     </article>
   )
 }

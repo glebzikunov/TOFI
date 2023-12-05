@@ -1,7 +1,6 @@
 import * as z from "zod"
 
 export const TransactionValidation = z.object({
-  senderAccount: z.string().min(1),
   receiverAccount: z.string().min(1),
   transactionAmount: z.coerce
     .number()
