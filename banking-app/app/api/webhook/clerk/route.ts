@@ -75,7 +75,7 @@ export const POST = async (request: Request) => {
         name,
         slug,
         logo_url || image_url,
-        "org bio",
+        "Shared account bio",
         // @ts-ignore
         id.split("_")[1],
         created_by

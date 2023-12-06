@@ -87,8 +87,8 @@ const TransactionCard = ({
           <Image
             src={sharedAccount.image}
             alt={sharedAccount.name}
-            width={14}
-            height={14}
+            width={20}
+            height={20}
             className="ml-1 rounded-full object-cover"
           />
         </Link>
