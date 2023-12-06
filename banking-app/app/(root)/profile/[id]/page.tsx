@@ -28,6 +28,7 @@ async function Page({ params }: { params: { id: string } }) {
         username={userInfo.username}
         imgUrl={userInfo.image}
         bio={userInfo.bio}
+        type="User"
       />
       {userInfo.id === user.id && (
         <div className="mt-9">
