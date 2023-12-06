@@ -297,16 +297,16 @@ export async function deleteSharedAccount(sharedAccountId: string) {
     }
 
     // Delete all transactions associated with the shared account
-    await Transaction.deleteMany({ sharedAccount: sharedAccountId })
+    await Transaction.deleteMany({ sharedAccount: deletedSharedAccount._id })
 
     //Find all users who are part of the shared account
     const sharedAccountUsers = await User.find({
-      sharedAccounts: sharedAccountId,
+      sharedAccounts: deletedSharedAccount._id,
     })
 
     // Remove the shared account from the 'sharedAccounts' array for each user
     const updateUserPromises = sharedAccountUsers.map((user) => {
-      user.sharedAccounts.pull(sharedAccountId)
+      user.sharedAccounts.pull(deletedSharedAccount._id)
       return user.save()
     })
 

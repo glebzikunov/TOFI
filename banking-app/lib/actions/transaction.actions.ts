@@ -29,12 +29,10 @@ export async function makeTransaction({
   try {
     connectToDb()
 
-    const sharedAccountIdObject = await SharedAccount.findOne(
-      {
-        id: sharedAccountId,
-      },
-      { _id: 1 }
-    )
+    const sharedAccountIdObject = await SharedAccount.findOne({
+      id: sharedAccountId,
+    })
+    console.log(sharedAccountIdObject)
 
     const user = await fetchUserById(author)
     const receiver = await fetchBankAccount(receiverAccount)
@@ -179,6 +177,7 @@ export async function fetchTransactions(iban: string) {
     })
       .sort({ timestamp: "desc" })
       .populate({ path: "author", model: User })
+      .populate({ path: "sharedAccount", model: SharedAccount })
 
     const transactions = await transactionsQuery.exec()
 
