@@ -27,7 +27,7 @@ export async function createSharedAccount(
     if (!user) {
       throw new Error("User not found") // Handle the case if the user with the id is not found
     }
-    //
+
     const newSharedAccount = new SharedAccount({
       id,
       name,
@@ -292,36 +292,25 @@ export async function deleteSharedAccount(sharedAccountId: string) {
       id: sharedAccountId,
     })
 
-    const deletedShared = await SharedAccount.findOne({
-      id: sharedAccountId,
-    })
-
-    console.log("Deleted shared account: ", deletedSharedAccount._id)
-    console.log("Deleted shared: ", deletedShared._id)
-
     if (!deletedSharedAccount) {
       throw new Error("Shared account not found")
     }
 
     // Delete all transactions associated with the shared account
-    await Transaction.deleteMany({ sharedAccount: deletedShared })
+    await Transaction.deleteMany({ sharedAccount: sharedAccountId })
 
-    await User.updateMany(
-      { sharedAccounts: deletedShared._id },
-      { $pull: { sharedAccounts: deletedShared._id } }
-    )
-    // Find all users who are part of the shared account
-    // const sharedAccountUsers = await User.find({
-    //   sharedAccounts: deletedSharedAccount._id,
-    // })
+    //Find all users who are part of the shared account
+    const sharedAccountUsers = await User.find({
+      sharedAccounts: sharedAccountId,
+    })
 
-    // // Remove the shared account from the 'sharedAccounts' array for each user
-    // const updateUserPromises = sharedAccountUsers.map((user) => {
-    //   user.sharedAccounts.pull(deletedSharedAccount._id)
-    //   return user.save()
-    // })
+    // Remove the shared account from the 'sharedAccounts' array for each user
+    const updateUserPromises = sharedAccountUsers.map((user) => {
+      user.sharedAccounts.pull(sharedAccountId)
+      return user.save()
+    })
 
-    //await Promise.all(updateUserPromises)
+    await Promise.all(updateUserPromises)
 
     return deletedSharedAccount
   } catch (error) {
