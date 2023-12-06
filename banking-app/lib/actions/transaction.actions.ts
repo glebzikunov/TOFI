@@ -165,14 +165,18 @@ export async function makeTransaction({
   }
 }
 
-export async function fetchTransactions(iban: string) {
+export async function fetchTransactions(accountId: string) {
   try {
     connectToDb()
 
+    const user = await User.findOne({ id: accountId }).populate({
+      path: "bankAccount",
+      model: Iban,
+    })
     const transactionsQuery = Transaction.find({
       $or: [
-        { senderAccount: iban, type: "expense" },
-        { receiverAccount: iban, type: "income" },
+        { senderAccount: user.bankAccount.number, type: "expense" },
+        { receiverAccount: user.bankAccount.number, type: "income" },
       ],
     })
       .sort({ timestamp: "desc" })
@@ -241,14 +245,13 @@ export async function fetchTransactionById(id: string) {
   connectToDb()
 
   try {
-    // TODO Populate shared account
-
     const transaction = await Transaction.findById(id)
       .populate({
         path: "author",
         model: "User",
         select: "_id id name image",
       })
+      .populate({ path: "sharedAccount", model: SharedAccount })
       .exec()
 
     return transaction

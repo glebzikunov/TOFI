@@ -1,13 +1,24 @@
 import { fetchTransactions } from "@/lib/actions/transaction.actions"
 import TransactionCard from "@/components/cards/TransactionCard"
+import { fetchSharedAccountTransactions } from "@/lib/actions/sharedAccount.actions"
 
 interface Props {
   currentUserId: string
-  iban: string
+  accountId: string
+  accountType: string
 }
 
-const TransactionsTab = async ({ currentUserId, iban }: Props) => {
-  let result = await fetchTransactions(iban)
+const TransactionsTab = async ({
+  currentUserId,
+  accountId,
+  accountType,
+}: Props) => {
+  let result: any
+  if (accountType === "SharedAccount") {
+    result = await fetchSharedAccountTransactions(accountId)
+  } else {
+    result = await fetchTransactions(accountId)
+  }
 
   return (
     <section className="mt-9 flex flex-col gap-5">
@@ -15,6 +26,7 @@ const TransactionsTab = async ({ currentUserId, iban }: Props) => {
         <p className="no-result">No results.</p>
       ) : (
         <>
+          {/* @ts-ignore */}
           {result.map((transaction) => (
             <TransactionCard
               key={transaction._id}

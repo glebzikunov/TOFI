@@ -7,8 +7,7 @@ async function RightSidebar() {
 
   if (!user) return null
 
-  const userIban = user?.id.split("_")[1]
-  const result = await fetchTransactions(userIban)
+  const result = await fetchTransactions(user.id)
 
   return (
     <section className="custom-scrollbar rightsidebar">

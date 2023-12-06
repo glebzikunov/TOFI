@@ -82,7 +82,7 @@ const TransactionCard = ({
         >
           <p className="text-subtle-medium text-gray-1">
             {formatDateString(createdAt)}
-            {` - ${sharedAccount.name} Shared Account`}
+            {` - ${sharedAccount.name} Account`}
           </p>
           <Image
             src={sharedAccount.image}

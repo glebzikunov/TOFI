@@ -90,9 +90,9 @@ const AccountProfile = ({ user, btnTitle }: Params) => {
     }
 
     await updateUser({
-      userId: user.id,
-      username: values.username,
       name: values.name,
+      username: values.username,
+      userId: user.id,
       bio: values.bio,
       image: values.profile_photo,
       path: pathname,

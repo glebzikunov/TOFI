@@ -7,7 +7,6 @@ import Transaction from "../models/transaction.model"
 import User from "../models/user.model"
 
 import { connectToDb } from "../mongoose"
-import Iban from "../models/iban.model"
 
 export async function createSharedAccount(
   id: string,
@@ -94,21 +93,17 @@ export async function fetchSharedAccountTransactions(id: string) {
   try {
     connectToDb()
 
-    const sharedAccount = await SharedAccount.findById(id).populate({
-      path: "iban",
-      model: Iban,
-      select: "number",
-    })
+    const sharedAccount = await SharedAccount.findById(id)
 
-    const sharedAccountIban = sharedAccount.bankAccount.number
     const transactionsQuery = Transaction.find({
       $or: [
-        { senderAccount: sharedAccountIban, type: "expense" },
-        { receiverAccount: sharedAccountIban, type: "income" },
+        { senderAccount: sharedAccount.number, type: "expense" },
+        { receiverAccount: sharedAccount.number, type: "income" },
       ],
     })
       .sort({ timestamp: "desc" })
       .populate({ path: "author", model: User, select: "name image id" }) // or "_id"
+      .populate({ path: "sharedAccount", model: SharedAccount })
 
     const sharedAccountTransactions = await transactionsQuery.exec()
 
@@ -120,55 +115,21 @@ export async function fetchSharedAccountTransactions(id: string) {
   }
 }
 
-export async function fetchSharedAccounts({
-  searchString = "",
-  pageNumber = 1,
-  pageSize = 20,
-  sortBy = "desc",
-}: {
-  searchString?: string
-  pageNumber?: number
-  pageSize?: number
-  sortBy?: SortOrder
-}) {
+export async function fetchSharedAccounts(userId: string) {
   try {
     connectToDb()
 
-    // Calculate the number of shared accounts to skip based on the page number and page size.
-    const skipAmount = (pageNumber - 1) * pageSize
+    //Find current user by clerk id
+    const user = await User.findOne({ id: userId })
 
-    // Create a case-insensitive regular expression for the provided search string.
-    const regex = new RegExp(searchString, "i")
-
-    // Create an initial query object to filter shared accounts.
-    const query: FilterQuery<typeof SharedAccount> = {}
-
-    // If the search string is not empty, add the $or operator to match either username or name fields.
-    if (searchString.trim() !== "") {
-      query.$or = [{ username: { $regex: regex } }, { name: { $regex: regex } }]
-    }
-
-    // Define the sort options for the fetched shared accounts based on createdAt field and provided sort order.
-    const sortOptions = { createdAt: sortBy }
-
-    // Create a query to fetch the shared accounts based on the search and sort criteria.
-    const sharedAccountQuery = SharedAccount.find(query)
-      .sort(sortOptions)
-      .skip(skipAmount)
-      .limit(pageSize)
+    //Find all shared accounts related to user
+    const sharedAccounts = await SharedAccount.find({ createdBy: user._id })
+      .sort({ createdAt: "desc" })
       .populate("members")
 
-    // Count the total number of shared accounts that match the search criteria (without pagination).
-    const totalSharedAccountsCount = await SharedAccount.countDocuments(query)
-
-    const sharedAccounts = await sharedAccountQuery.exec()
-
-    // Check if there are more shared accounts beyond the current page.
-    const isNext = totalSharedAccountsCount > skipAmount + sharedAccounts.length
-
-    return { sharedAccounts, isNext }
+    return sharedAccounts
   } catch (error) {
-    console.error("Error fetching shared accounts:", error)
+    console.error("Error fetching user shared accounts:", error)
     throw error
   }
 }

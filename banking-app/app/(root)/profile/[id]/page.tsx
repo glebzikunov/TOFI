@@ -13,8 +13,7 @@ async function Page({ params }: { params: { id: string } }) {
 
   if (!user) return null
 
-  const userIban = user?.id.split("_")[1]
-  const result = await fetchTransactions(userIban)
+  const result = await fetchTransactions(user.id)
 
   const userInfo = await fetchUser(params.id)
 
@@ -58,7 +57,11 @@ async function Page({ params }: { params: { id: string } }) {
                 value={tab.value}
                 className="w-full text-light-1"
               >
-                <TransactionsTab currentUserId={user.id} iban={userIban} />
+                <TransactionsTab
+                  currentUserId={user.id}
+                  accountId={user.id}
+                  accountType="User"
+                />
               </TabsContent>
             ))}
           </Tabs>
