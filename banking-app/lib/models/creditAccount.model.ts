@@ -17,7 +17,6 @@ const creditAccountSchema = new mongoose.Schema({
   },
   createdAt: { type: Date, default: Date.now },
   isClosed: { type: Boolean, default: false },
-  closedAt: Date,
 })
 
 const CreditAccount =

@@ -67,9 +67,16 @@ export async function makeTransaction({
         $push: { transactions: senderTransaction._id },
       })
 
+      const senderSharedAccount = await SharedAccount.findOne({
+        number: sharedAccountIdObject.number,
+      })
+      const newSenderBalance = parseFloat(
+        (senderSharedAccount.balance - transactionAmount).toFixed(2)
+      )
+
       await SharedAccount.findByIdAndUpdate(sharedAccountIdObject._id, {
         $push: { transactions: senderTransaction._id },
-        $inc: { balance: -transactionAmount },
+        $set: { balance: newSenderBalance },
       })
 
       const receiverTransaction = await Transaction.create({
@@ -83,14 +90,28 @@ export async function makeTransaction({
       })
 
       if (receiverIsSharedAccount) {
+        const receiverSharedAccount = await SharedAccount.findOne({
+          number: receiverAccount,
+        })
+        const newReceiverBalance = parseFloat(
+          (receiverSharedAccount.balance + transactionAmount).toFixed(2)
+        )
+
         await SharedAccount.findOneAndUpdate(
           { number: receiverAccount },
           {
             $push: { transactions: receiverTransaction._id },
-            $inc: { balance: transactionAmount },
+            $set: { balance: newReceiverBalance },
           }
         )
       } else {
+        const receiverIban = await Iban.findOne({
+          number: receiverAccount,
+        })
+        const newReceiverIbanBalance = parseFloat(
+          (receiverIban.balance + transactionAmount).toFixed(2)
+        )
+
         await User.findOneAndUpdate(
           { bankAccount: receiver._id },
           { $push: { transactions: receiverTransaction._id } }
@@ -99,7 +120,7 @@ export async function makeTransaction({
         await Iban.findOneAndUpdate(
           { number: receiverAccount },
           {
-            $inc: { balance: transactionAmount },
+            $set: { balance: newReceiverIbanBalance },
           }
         )
       }
@@ -118,10 +139,15 @@ export async function makeTransaction({
         $push: { transactions: senderTransaction._id },
       })
 
+      const senderIban = await Iban.findOne({ number: user.bankAccount.number })
+      const newSenderIbanBalance = parseFloat(
+        (senderIban.balance - transactionAmount).toFixed(2)
+      )
+
       await Iban.findOneAndUpdate(
         { number: user.bankAccount.number },
         {
-          $inc: { balance: -transactionAmount },
+          $set: { balance: newSenderIbanBalance },
         }
       )
 
@@ -149,10 +175,17 @@ export async function makeTransaction({
           { $push: { transactions: receiverTransaction._id } }
         )
 
+        const receiverIban = await Iban.findOne({
+          number: receiverAccount,
+        })
+        const newReceiverIbanBalance = parseFloat(
+          (receiverIban.balance + transactionAmount).toFixed(2)
+        )
+
         await Iban.findOneAndUpdate(
           { number: receiverAccount },
           {
-            $inc: { balance: transactionAmount },
+            $set: { balance: newReceiverIbanBalance },
           }
         )
       }
@@ -181,46 +214,57 @@ export async function makeCreditTransaction(
 
     const credit = await fetchCreditById(creditId)
 
-    if (credit.remainingAmount - monthPayment === 0) {
+    if (user.bankAccount.balance < monthPayment) {
+      throw new Error(`You don't have enough money!`)
+    }
+
+    if (
+      parseFloat((credit.remainingAmount - monthPayment).toFixed(2)) ===
+      parseFloat((0.0).toFixed(2))
+    ) {
       await CreditAccount.findOneAndUpdate(
         { number: creditAccount },
         {
-          $set: { isClosed: true, closedAt: Date.now },
-        }
-      )
-    } else {
-      if (user.bankAccount.balance < monthPayment) {
-        throw new Error(`You don't have enough money!`)
-      }
-
-      const senderTransaction = await Transaction.create({
-        senderAccount: user.bankAccount.number,
-        receiverAccount: creditAccount,
-        transactionAmount: monthPayment,
-        description,
-        author,
-        sharedAccount: null,
-        type: "expense",
-      })
-
-      await User.findByIdAndUpdate(author, {
-        $push: { transactions: senderTransaction._id },
-      })
-
-      await Iban.findOneAndUpdate(
-        { number: user.bankAccount.number },
-        {
-          $inc: { balance: -monthPayment },
-        }
-      )
-
-      await CreditAccount.findOneAndUpdate(
-        { number: creditAccount },
-        {
-          $inc: { remainingAmount: -monthPayment },
+          $set: { isClosed: true },
         }
       )
     }
+
+    const senderTransaction = await Transaction.create({
+      senderAccount: user.bankAccount.number,
+      receiverAccount: creditAccount,
+      transactionAmount: monthPayment,
+      description,
+      author,
+      sharedAccount: null,
+      type: "expense",
+    })
+
+    await User.findByIdAndUpdate(author, {
+      $push: { transactions: senderTransaction._id },
+    })
+
+    const newUserBalance = parseFloat(
+      (user.bankAccount.balance - monthPayment).toFixed(2)
+    )
+
+    await Iban.findOneAndUpdate(
+      { number: user.bankAccount.number },
+      {
+        $set: { balance: newUserBalance },
+      }
+    )
+
+    const newCreditBalance = parseFloat(
+      (credit.remainingAmount - monthPayment).toFixed(2)
+    )
+
+    await CreditAccount.findOneAndUpdate(
+      { number: creditAccount },
+      {
+        $set: { remainingAmount: newCreditBalance },
+      }
+    )
 
     revalidatePath(path)
   } catch (error: any) {

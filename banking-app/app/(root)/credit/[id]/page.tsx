@@ -39,12 +39,19 @@ const Page = async ({ params }: { params: { id: string } }) => {
             Requested Amount: {formatTransactionAmount(credit.requestedAmount)}
           </p>
           {!credit.isClosed ? (
-            <p className="pb-2">
-              Need to pay: {formatTransactionAmount(credit.remainingAmount)}
-            </p>
+            <>
+              <p className="pb-2">
+                Need to cover: {formatTransactionAmount(credit.remainingAmount)}
+              </p>
+              <p className="pb-2">
+                Month payment: {formatTransactionAmount(credit.monthPayment)}
+              </p>
+              <p className="pb-2">
+                Credit period: {credit.creditPeriod} months
+              </p>
+            </>
           ) : null}
           <p className="pb-2">Interest rate: %{credit.interestRate}</p>
-          <p className="pb-2">Credit period: {credit.creditPeriod}</p>
           <p className="pb-2">Description: {credit.description}</p>
         </div>
         {!credit.isClosed ? (
