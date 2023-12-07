@@ -7,6 +7,8 @@ import { redirect } from "next/navigation"
 import Image from "next/image"
 import { fetchTransactions } from "@/lib/actions/transaction.actions"
 import TransactionsTab from "@/components/shared/TransactionsTab"
+import { fetchUserCredits } from "@/lib/actions/creditAccount.actions"
+import CreditCard from "@/components/cards/CreditCard"
 
 async function Page({ params }: { params: { id: string } }) {
   const user = await currentUser()
@@ -18,6 +20,8 @@ async function Page({ params }: { params: { id: string } }) {
   const userInfo = await fetchUser(params.id)
 
   if (!userInfo?.onboarded) redirect("/onboarding")
+
+  const userCredits = await fetchUserCredits(userInfo._id)
 
   return (
     <section>
@@ -52,19 +56,31 @@ async function Page({ params }: { params: { id: string } }) {
                 </TabsTrigger>
               ))}
             </TabsList>
-            {profileTabs.map((tab) => (
-              <TabsContent
-                key={`content-${tab.label}`}
-                value={tab.value}
-                className="w-full text-light-1"
-              >
-                <TransactionsTab
-                  currentUserId={user.id}
-                  accountId={user.id}
-                  accountType="User"
-                />
-              </TabsContent>
-            ))}
+
+            <TabsContent value="transactions" className="w-full text-light-1">
+              <TransactionsTab
+                currentUserId={user.id}
+                accountId={user.id}
+                accountType="User"
+              />
+            </TabsContent>
+            <TabsContent value="credits" className="w-full text-light-1">
+              <section className="mt-9 flex flex-col gap-10">
+                {userCredits.map((credit: any) => (
+                  <>
+                    <CreditCard
+                      key={credit.id}
+                      id={credit._id}
+                      author={credit.createdBy}
+                      createdAt={credit.createdAt}
+                      isClosed={credit.isClosed}
+                      description={credit.description}
+                      padding="p-7"
+                    />
+                  </>
+                ))}
+              </section>
+            </TabsContent>
           </Tabs>
         </div>
       )}

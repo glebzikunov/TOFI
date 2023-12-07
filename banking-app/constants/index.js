@@ -37,7 +37,7 @@ export const profileTabs = [
     label: "Transactions",
     icon: "/assets/transactions.svg",
   },
-  { value: "accounts", label: "Accounts", icon: "/assets/accounts.svg" },
+  { value: "credits", label: "Credits", icon: "/assets/accounts.svg" },
 ]
 
 export const sharedAccountTabs = [

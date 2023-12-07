@@ -26,7 +26,6 @@ const TransactionsTab = async ({
         <p className="no-result">No results.</p>
       ) : (
         <>
-          {/* @ts-ignore */}
           {result.map((transaction) => (
             <TransactionCard
               key={transaction._id}
@@ -38,7 +37,7 @@ const TransactionsTab = async ({
               transactionAmount={transaction.transactionAmount}
               type={transaction.type}
               createdAt={transaction.timestamp}
-              paddding="p-7"
+              padding="p-7"
             />
           ))}
         </>

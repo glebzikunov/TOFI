@@ -8,6 +8,8 @@ import Iban from "../models/iban.model"
 import { fetchUserById } from "./user.actions"
 import { fetchBankAccount } from "./iban.actions"
 import SharedAccount from "../models/sharedAccount.model"
+import { fetchCreditById } from "./creditAccount.actions"
+import CreditAccount from "../models/creditAccount.model"
 
 interface Params {
   receiverAccount: string
@@ -32,7 +34,6 @@ export async function makeTransaction({
     const sharedAccountIdObject = await SharedAccount.findOne({
       id: sharedAccountId,
     })
-    console.log(sharedAccountIdObject)
 
     const user = await fetchUserById(author)
     const receiver = await fetchBankAccount(receiverAccount)
@@ -165,6 +166,70 @@ export async function makeTransaction({
   }
 }
 
+export async function makeCreditTransaction(
+  creditId: string,
+  creditAccount: string,
+  monthPayment: number,
+  description: string,
+  author: string,
+  path: string
+) {
+  try {
+    connectToDb()
+
+    const user = await fetchUserById(author)
+
+    const credit = await fetchCreditById(creditId)
+
+    if (credit.remainingAmount - monthPayment === 0) {
+      await CreditAccount.findOneAndUpdate(
+        { number: creditAccount },
+        {
+          $set: { isClosed: true, closedAt: Date.now },
+        }
+      )
+    } else {
+      if (user.bankAccount.balance < monthPayment) {
+        throw new Error(`You don't have enough money!`)
+      }
+
+      const senderTransaction = await Transaction.create({
+        senderAccount: user.bankAccount.number,
+        receiverAccount: creditAccount,
+        transactionAmount: monthPayment,
+        description,
+        author,
+        sharedAccount: null,
+        type: "expense",
+      })
+
+      await User.findByIdAndUpdate(author, {
+        $push: { transactions: senderTransaction._id },
+      })
+
+      await Iban.findOneAndUpdate(
+        { number: user.bankAccount.number },
+        {
+          $inc: { balance: -monthPayment },
+        }
+      )
+
+      await CreditAccount.findOneAndUpdate(
+        { number: creditAccount },
+        {
+          $inc: { remainingAmount: -monthPayment },
+        }
+      )
+    }
+
+    revalidatePath(path)
+  } catch (error: any) {
+    return {
+      error: error.message,
+    }
+  }
+}
+
 export async function fetchTransactions(accountId: string) {
   try {
     connectToDb()
@@ -210,7 +275,7 @@ export async function calculateExpenses(iban: string) {
       0
     )
 
-    return totalExpenses
+    return parseFloat(totalExpenses.toFixed(2))
   } catch (error: any) {
     throw new Error(`Failed to calc user expenses: ${error.message}`)
   }
@@ -235,7 +300,7 @@ export async function calculateIncomes(iban: string) {
       0
     )
 
-    return totalIncomes
+    return parseFloat(totalIncomes.toFixed(2))
   } catch (error: any) {
     throw new Error(`Failed to calc user incomes: ${error.message}`)
   }

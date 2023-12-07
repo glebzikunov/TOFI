@@ -7,7 +7,7 @@ interface Params {
   text: string
 }
 
-function MakeTransaction({ data, text }: Params) {
+function CopyButton({ data, text }: Params) {
   return (
     <Button
       onClick={() => navigator.clipboard.writeText(data)}
@@ -18,4 +18,4 @@ function MakeTransaction({ data, text }: Params) {
   )
 }
 
-export default MakeTransaction
+export default CopyButton
