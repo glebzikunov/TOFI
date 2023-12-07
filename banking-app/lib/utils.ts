@@ -47,13 +47,18 @@ export function hideBankAccount(account: string) {
   return "****" + account.substring(17)
 }
 
-// created by chatgpt
-export function formatThreadCount(count: number): string {
-  if (count === 0) {
-    return "No Threads"
-  } else {
-    const threadCount = count.toString().padStart(2, "0")
-    const threadWord = count === 1 ? "Thread" : "Threads"
-    return `${threadCount} ${threadWord}`
-  }
+export function calcDiffPayment(
+  requestedAmount: number,
+  remainingAmount: number,
+  period: number,
+  interestRate: number
+) {
+  const diffMonthPayment = parseFloat(
+    (
+      requestedAmount / period +
+      (remainingAmount * (interestRate / 100)) / 12
+    ).toFixed(2)
+  )
+
+  return diffMonthPayment
 }

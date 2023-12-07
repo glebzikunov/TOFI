@@ -35,22 +35,26 @@ const Page = async ({ params }: { params: { id: string } }) => {
           <p className="pb-2">
             Credit number: {hideBankAccount(credit.number)}
           </p>
+          <p className="pb-2">Credit type: {credit.paymentType}</p>
           <p className="pb-2">
             Requested Amount: {formatTransactionAmount(credit.requestedAmount)}
           </p>
-          {!credit.isClosed ? (
-            <>
-              <p className="pb-2">
-                Need to cover: {formatTransactionAmount(credit.remainingAmount)}
-              </p>
-              <p className="pb-2">
-                Month payment: {formatTransactionAmount(credit.monthPayment)}
-              </p>
-              <p className="pb-2">
-                Credit period: {credit.creditPeriod} months
-              </p>
-            </>
+          {!credit.isClosed && credit.paymentType === "annuity" ? (
+            <p className="pb-2">
+              Need to cover: {formatTransactionAmount(credit.remainingAmount)}
+            </p>
+          ) : !credit.isClosed && credit.paymentType === "differential" ? (
+            <p className="pb-2">
+              Need to cover: {formatTransactionAmount(credit.remainingAmount)} +
+              transactions %
+            </p>
           ) : null}
+          {credit.paymentType === "annuity" ? (
+            <p className="pb-2">
+              Month payment: {formatTransactionAmount(credit.monthPayment)}
+            </p>
+          ) : null}
+          <p className="pb-2">Credit period: {credit.creditPeriod} months</p>
           <p className="pb-2">Interest rate: %{credit.interestRate}</p>
           <p className="pb-2">Description: {credit.description}</p>
         </div>
@@ -59,7 +63,12 @@ const Page = async ({ params }: { params: { id: string } }) => {
             <PayForCredit
               creditId={credit._id}
               creditNumber={credit.number}
-              monthPayment={credit.monthPayment}
+              creditType={credit.paymentType}
+              requestedAmmount={credit.requestedAmount}
+              remainingAmount={credit.remainingAmount}
+              period={credit.creditPeriod}
+              interestRate={credit.interestRate}
+              monthPayment={credit.monthPayment ? credit.monthPayment : null}
               author={credit.createdBy._id}
               text={"Pay for credit"}
             />

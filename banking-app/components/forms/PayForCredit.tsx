@@ -7,6 +7,11 @@ import { usePathname, useRouter } from "next/navigation"
 interface Params {
   creditId: string
   creditNumber: string
+  creditType: string
+  requestedAmmount: number
+  remainingAmount: number
+  period: number
+  interestRate: number
   monthPayment: number
   author: string
   text: string
@@ -15,6 +20,11 @@ interface Params {
 function PayForCredit({
   creditId,
   creditNumber,
+  creditType,
+  requestedAmmount,
+  remainingAmount,
+  period,
+  interestRate,
   monthPayment,
   author,
   text,
@@ -31,6 +41,11 @@ function PayForCredit({
       const result = await makeCreditTransaction(
         creditId,
         creditNumber,
+        creditType,
+        requestedAmmount,
+        remainingAmount,
+        period,
+        interestRate,
         monthPayment,
         "Credit payment",
         author,

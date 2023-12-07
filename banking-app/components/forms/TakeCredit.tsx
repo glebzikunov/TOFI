@@ -18,7 +18,6 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { usePathname, useRouter } from "next/navigation"
 import { CreditValidation } from "@/lib/validations/credit"
-import { useOrganization } from "@clerk/nextjs"
 import { takeCredit } from "@/lib/actions/creditAccount.actions"
 
 interface Params {
@@ -28,7 +27,6 @@ interface Params {
 function MakeTransaction({ userId }: Params) {
   const router = useRouter()
   const pathname = usePathname()
-  const { organization } = useOrganization()
 
   const form = useForm({
     resolver: zodResolver(CreditValidation),

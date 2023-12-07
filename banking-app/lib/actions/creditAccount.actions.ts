@@ -6,6 +6,7 @@ import { connectToDb } from "../mongoose"
 import CreditAccount from "../models/creditAccount.model"
 import Iban from "../models/iban.model"
 import Transaction from "../models/transaction.model"
+import { calcDiffPayment } from "../utils"
 
 interface Params {
   paymentType: string
@@ -41,6 +42,11 @@ export async function takeCredit({
       model: Iban,
     })
 
+    const userBalance = user.bankAccount.balance
+    const newUserBalance = parseFloat(
+      (userBalance + requestedAmount).toFixed(2)
+    )
+
     const createdCredit = await CreditAccount.create({
       requestedAmount: requestedAmount,
       paymentType: paymentType,
@@ -49,11 +55,22 @@ export async function takeCredit({
       createdBy: createdBy,
     })
 
+    await User.findByIdAndUpdate(createdBy, {
+      $push: { creditAccounts: createdCredit._id },
+    })
+
+    await Iban.findOneAndUpdate(
+      { number: user.bankAccount.number },
+      {
+        $set: { balance: newUserBalance },
+      }
+    )
+
     if (paymentType === "annuity") {
       const m = parseFloat((createdCredit.interestRate / 12 / 100).toFixed(4))
       const annuityCoef = parseFloat(
         ((m * Math.pow(1 + m, period)) / (Math.pow(1 + m, period) - 1)).toFixed(
-          3
+          4
         )
       )
       const monthPayment = parseFloat(
@@ -70,26 +87,51 @@ export async function takeCredit({
         },
       })
 
-      await User.findByIdAndUpdate(createdBy, {
-        $push: { creditAccounts: createdCredit._id },
+      await Transaction.create({
+        senderAccount: createdCredit._id.toString(),
+        receiverAccount: user.bankAccount.number,
+        transactionAmount: requestedAmount,
+        description: "Annuity credit has been taken",
+        author: createdBy,
+        sharedAccount: null,
+        type: "income",
+      })
+    } else {
+      let totalAmount = 0
+      let remainingAmount = requestedAmount
+
+      for (let i = 0; i < period; i++) {
+        const diffMonthPayment = calcDiffPayment(
+          requestedAmount,
+          remainingAmount,
+          period,
+          createdCredit.interestRate
+        )
+
+        remainingAmount = parseFloat(
+          (remainingAmount - diffMonthPayment).toFixed(2)
+        )
+
+        totalAmount = parseFloat((totalAmount + diffMonthPayment).toFixed(2))
+      }
+
+      await CreditAccount.findByIdAndUpdate(createdCredit._id, {
+        $set: {
+          number: createdCredit._id.toString(),
+          totalAmount: totalAmount,
+          remainingAmount: requestedAmount,
+        },
       })
 
       await Transaction.create({
         senderAccount: createdCredit._id.toString(),
         receiverAccount: user.bankAccount.number,
         transactionAmount: requestedAmount,
-        description: "Credit has been taked",
-        author: user._id,
+        description: "Differential credit has been taken",
+        author: createdBy,
         sharedAccount: null,
         type: "income",
       })
-
-      await Iban.findOneAndUpdate(
-        { number: user.bankAccount.number },
-        {
-          $inc: { balance: requestedAmount },
-        }
-      )
     }
 
     revalidatePath(path)
