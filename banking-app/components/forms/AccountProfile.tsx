@@ -90,25 +90,25 @@ const AccountProfile = ({ user, btnTitle }: Params) => {
     }
 
     await updateUser({
-      userId: user.id,
-      username: values.username,
       name: values.name,
+      username: values.username,
+      userId: user.id,
       bio: values.bio,
       image: values.profile_photo,
-      path: pathname,
-    })
-
-    const createdUser = await fetchUser(user.id)
-
-    await createIban({
-      number: user.id.split("_")[1],
-      owner: createdUser._id,
       path: pathname,
     })
 
     if (pathname === "/profile/edit") {
       router.back()
     } else {
+      const createdUser = await fetchUser(user.id)
+
+      await createIban({
+        number: user.id.split("_")[1],
+        owner: createdUser._id,
+        path: pathname,
+      })
+
       router.push("/")
     }
   }
@@ -217,7 +217,7 @@ const AccountProfile = ({ user, btnTitle }: Params) => {
           )}
         />
         <Button type="submit" className="bg-primary-500">
-          Submit
+          {btnTitle}
         </Button>
       </form>
     </Form>

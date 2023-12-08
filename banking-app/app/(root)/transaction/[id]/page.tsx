@@ -30,7 +30,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
           transactionAmount={transaction.transactionAmount}
           type={transaction.type}
           createdAt={transaction.timestamp}
-          paddding="p-7"
+          padding="p-7"
         />
       </div>
       <div className="flex w-full flex-col rounded-xl bg-dark-2 p-7 mt-5 text-light-2">

@@ -19,7 +19,7 @@ interface Props {
   transactionAmount: number
   type: "income" | "expense"
   createdAt: string
-  paddding: string
+  padding: string
 }
 
 const TransactionCard = ({
@@ -31,12 +31,10 @@ const TransactionCard = ({
   transactionAmount,
   type,
   createdAt,
-  paddding,
+  padding,
 }: Props) => {
   return (
-    <article
-      className={`flex w-full flex-col rounded-xl bg-dark-2 ${paddding}`}
-    >
+    <article className={`flex w-full flex-col rounded-xl bg-dark-2 ${padding}`}>
       <div className="flex items-start justify-between">
         <div className="flex w-full flex-1 flex-row gap-4">
           <div className="flex flex-col items-center ">
@@ -82,7 +80,7 @@ const TransactionCard = ({
         >
           <p className="text-subtle-medium text-gray-1">
             {formatDateString(createdAt)}
-            {` - ${sharedAccount.name} Shared Account`}
+            {` - ${sharedAccount.name} Account`}
           </p>
           <Image
             src={sharedAccount.image}

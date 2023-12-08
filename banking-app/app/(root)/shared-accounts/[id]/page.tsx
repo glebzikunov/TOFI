@@ -1,44 +1,40 @@
-import ProfileHeader from "@/components/shared/ProfileHeader"
-import { Tabs, TabsList, TabsContent, TabsTrigger } from "@/components/ui/tabs"
-import { profileTabs } from "@/constants"
-import { fetchUser } from "@/lib/actions/user.actions"
-import { currentUser } from "@clerk/nextjs"
-import { redirect } from "next/navigation"
 import Image from "next/image"
-import { fetchTransactions } from "@/lib/actions/transaction.actions"
+import { currentUser } from "@clerk/nextjs"
+import { sharedAccountTabs } from "@/constants"
+import ProfileHeader from "@/components/shared/ProfileHeader"
 import TransactionsTab from "@/components/shared/TransactionsTab"
-import { fetchUserCredits } from "@/lib/actions/creditAccount.actions"
-import CreditCard from "@/components/cards/CreditCard"
+import { Tabs, TabsList, TabsContent, TabsTrigger } from "@/components/ui/tabs"
+import { fetchSharedAccountDetails } from "@/lib/actions/sharedAccount.actions"
+import UserCard from "@/components/cards/UserCard"
+import { fetchUser } from "@/lib/actions/user.actions"
 
 async function Page({ params }: { params: { id: string } }) {
   const user = await currentUser()
 
   if (!user) return null
 
-  const result = await fetchTransactions(user.id)
-
-  const userInfo = await fetchUser(params.id)
-
-  if (!userInfo?.onboarded) redirect("/onboarding")
-
-  const userCredits = await fetchUserCredits(userInfo._id)
+  const userInfo = await fetchUser(user.id)
+  const sharedAccountDetails = await fetchSharedAccountDetails(params.id)
+  const containsMember = sharedAccountDetails.members.some(
+    (member: any) => member._id.toString() === userInfo._id.toString()
+  )
 
   return (
     <section>
       <ProfileHeader
-        accountId={userInfo.id}
+        accountId={sharedAccountDetails.id}
         authUserId={user.id}
-        name={userInfo.name}
-        username={userInfo.username}
-        imgUrl={userInfo.image}
-        bio={userInfo.bio}
-        type="User"
+        name={sharedAccountDetails.name}
+        username={sharedAccountDetails.username}
+        imgUrl={sharedAccountDetails.image}
+        bio={sharedAccountDetails.bio}
+        type="SharedAccount"
       />
-      {userInfo.id === user.id && (
+      {containsMember && (
         <div className="mt-9">
           <Tabs defaultValue="transactions" className="w-full">
             <TabsList className="tab">
-              {profileTabs.map((tab) => (
+              {sharedAccountTabs.map((tab) => (
                 <TabsTrigger key={tab.label} value={tab.value} className="tab">
                   <Image
                     src={tab.icon}
@@ -50,7 +46,7 @@ async function Page({ params }: { params: { id: string } }) {
                   <p className="max-sm:hidden">{tab.label}</p>
                   {tab.label === "Transactions" && (
                     <p className="ml-1 rounded-sm bg-light-4 px-2 py-1 !text-tiny-medium text-light-2">
-                      {result?.length}
+                      {sharedAccountDetails?.transactions?.length}
                     </p>
                   )}
                 </TabsTrigger>
@@ -60,22 +56,21 @@ async function Page({ params }: { params: { id: string } }) {
             <TabsContent value="transactions" className="w-full text-light-1">
               <TransactionsTab
                 currentUserId={user.id}
-                accountId={user.id}
-                accountType="User"
+                accountId={sharedAccountDetails._id}
+                accountType="SharedAccount"
               />
             </TabsContent>
-            <TabsContent value="credits" className="w-full text-light-1">
+            <TabsContent value="members" className="w-full text-light-1">
               <section className="mt-9 flex flex-col gap-10">
-                {userCredits.map((credit: any) => (
+                {sharedAccountDetails?.members.map((member: any) => (
                   <>
-                    <CreditCard
-                      key={credit.id}
-                      id={credit._id}
-                      author={credit.createdBy}
-                      createdAt={credit.createdAt}
-                      isClosed={credit.isClosed}
-                      description={credit.description}
-                      padding="p-7"
+                    <UserCard
+                      key={member.id}
+                      id={member.id}
+                      name={member.name}
+                      username={member.username}
+                      imgUrl={member.image}
+                      personType="User"
                     />
                   </>
                 ))}

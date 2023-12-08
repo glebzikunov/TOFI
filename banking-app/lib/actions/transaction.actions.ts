@@ -8,6 +8,9 @@ import Iban from "../models/iban.model"
 import { fetchUserById } from "./user.actions"
 import { fetchBankAccount } from "./iban.actions"
 import SharedAccount from "../models/sharedAccount.model"
+import { fetchCreditById } from "./creditAccount.actions"
+import CreditAccount from "../models/creditAccount.model"
+import { calcDiffPayment } from "../utils"
 
 interface Params {
   receiverAccount: string
@@ -32,7 +35,6 @@ export async function makeTransaction({
     const sharedAccountIdObject = await SharedAccount.findOne({
       id: sharedAccountId,
     })
-    console.log(sharedAccountIdObject)
 
     const user = await fetchUserById(author)
     const receiver = await fetchBankAccount(receiverAccount)
@@ -66,9 +68,16 @@ export async function makeTransaction({
         $push: { transactions: senderTransaction._id },
       })
 
+      const senderSharedAccount = await SharedAccount.findOne({
+        number: sharedAccountIdObject.number,
+      })
+      const newSenderBalance = parseFloat(
+        (senderSharedAccount.balance - transactionAmount).toFixed(2)
+      )
+
       await SharedAccount.findByIdAndUpdate(sharedAccountIdObject._id, {
         $push: { transactions: senderTransaction._id },
-        $inc: { balance: -transactionAmount },
+        $set: { balance: newSenderBalance },
       })
 
       const receiverTransaction = await Transaction.create({
@@ -82,14 +91,28 @@ export async function makeTransaction({
       })
 
       if (receiverIsSharedAccount) {
+        const receiverSharedAccount = await SharedAccount.findOne({
+          number: receiverAccount,
+        })
+        const newReceiverBalance = parseFloat(
+          (receiverSharedAccount.balance + transactionAmount).toFixed(2)
+        )
+
         await SharedAccount.findOneAndUpdate(
           { number: receiverAccount },
           {
             $push: { transactions: receiverTransaction._id },
-            $inc: { balance: transactionAmount },
+            $set: { balance: newReceiverBalance },
           }
         )
       } else {
+        const receiverIban = await Iban.findOne({
+          number: receiverAccount,
+        })
+        const newReceiverIbanBalance = parseFloat(
+          (receiverIban.balance + transactionAmount).toFixed(2)
+        )
+
         await User.findOneAndUpdate(
           { bankAccount: receiver._id },
           { $push: { transactions: receiverTransaction._id } }
@@ -98,7 +121,7 @@ export async function makeTransaction({
         await Iban.findOneAndUpdate(
           { number: receiverAccount },
           {
-            $inc: { balance: transactionAmount },
+            $set: { balance: newReceiverIbanBalance },
           }
         )
       }
@@ -117,10 +140,15 @@ export async function makeTransaction({
         $push: { transactions: senderTransaction._id },
       })
 
+      const senderIban = await Iban.findOne({ number: user.bankAccount.number })
+      const newSenderIbanBalance = parseFloat(
+        (senderIban.balance - transactionAmount).toFixed(2)
+      )
+
       await Iban.findOneAndUpdate(
         { number: user.bankAccount.number },
         {
-          $inc: { balance: -transactionAmount },
+          $set: { balance: newSenderIbanBalance },
         }
       )
 
@@ -148,10 +176,17 @@ export async function makeTransaction({
           { $push: { transactions: receiverTransaction._id } }
         )
 
+        const receiverIban = await Iban.findOne({
+          number: receiverAccount,
+        })
+        const newReceiverIbanBalance = parseFloat(
+          (receiverIban.balance + transactionAmount).toFixed(2)
+        )
+
         await Iban.findOneAndUpdate(
           { number: receiverAccount },
           {
-            $inc: { balance: transactionAmount },
+            $set: { balance: newReceiverIbanBalance },
           }
         )
       }
@@ -165,17 +200,180 @@ export async function makeTransaction({
   }
 }
 
-export async function fetchTransactions(iban: string) {
+export async function makeCreditTransaction(
+  creditId: string,
+  creditAccount: string,
+  creditType: string,
+  requestedAmmount: number,
+  remainingAmount: number,
+  period: number,
+  interestRate: number,
+  monthPayment: number,
+  description: string,
+  author: string,
+  path: string
+) {
   try {
     connectToDb()
 
+    const user = await fetchUserById(author)
+
+    const credit = await fetchCreditById(creditId)
+
+    if (user.bankAccount.balance < monthPayment) {
+      throw new Error(`You don't have enough money!`)
+    }
+
+    if (creditType === "annuity") {
+      if (
+        parseFloat((credit.remainingAmount - monthPayment).toFixed(2)) ===
+        parseFloat((0.0).toFixed(2))
+      ) {
+        await CreditAccount.findOneAndUpdate(
+          { number: creditAccount },
+          {
+            $set: { isClosed: true },
+          }
+        )
+      }
+
+      const senderTransaction = await Transaction.create({
+        senderAccount: user.bankAccount.number,
+        receiverAccount: creditAccount,
+        transactionAmount: monthPayment,
+        description,
+        author,
+        sharedAccount: null,
+        type: "expense",
+      })
+
+      await User.findByIdAndUpdate(author, {
+        $push: { transactions: senderTransaction._id },
+      })
+
+      const newUserBalance = parseFloat(
+        (user.bankAccount.balance - monthPayment).toFixed(2)
+      )
+
+      await Iban.findOneAndUpdate(
+        { number: user.bankAccount.number },
+        {
+          $set: { balance: newUserBalance },
+        }
+      )
+
+      const newCreditBalance = parseFloat(
+        (credit.remainingAmount - monthPayment).toFixed(2)
+      )
+
+      await CreditAccount.findOneAndUpdate(
+        { number: creditAccount },
+        {
+          $set: { remainingAmount: newCreditBalance },
+        }
+      )
+    } else {
+      const paymentAmount = calcDiffPayment(
+        requestedAmmount,
+        remainingAmount,
+        period,
+        interestRate
+      )
+
+      console.log(paymentAmount)
+
+      if (user.bankAccount.balance < paymentAmount) {
+        throw new Error(`You don't have enough money!`)
+      }
+
+      const paymentsSumQuery = Transaction.find({
+        receiverAccount: creditAccount,
+        type: "expense",
+        author: author,
+      })
+
+      const paymentsSum = await paymentsSumQuery.exec()
+      const totalPaymentsSum = paymentsSum.reduce(
+        (total, expense) => total + expense.transactionAmount,
+        0
+      )
+
+      if (
+        parseFloat(
+          (credit.totalAmount - (paymentAmount + totalPaymentsSum)).toFixed(2)
+        ) === parseFloat((0.0).toFixed(2))
+      ) {
+        await CreditAccount.findOneAndUpdate(
+          { number: creditAccount },
+          {
+            $set: { isClosed: true, remainingAmount: 0 },
+          }
+        )
+      }
+
+      const senderTransaction = await Transaction.create({
+        senderAccount: user.bankAccount.number,
+        receiverAccount: creditAccount,
+        transactionAmount: paymentAmount,
+        description,
+        author,
+        sharedAccount: null,
+        type: "expense",
+      })
+
+      await User.findByIdAndUpdate(author, {
+        $push: { transactions: senderTransaction._id },
+      })
+
+      const newUserBalance = parseFloat(
+        (user.bankAccount.balance - paymentAmount).toFixed(2)
+      )
+
+      await Iban.findOneAndUpdate(
+        { number: user.bankAccount.number },
+        {
+          $set: { balance: newUserBalance },
+        }
+      )
+
+      const newCreditBalance = parseFloat(
+        (credit.remainingAmount - paymentAmount).toFixed(2)
+      )
+
+      await CreditAccount.findOneAndUpdate(
+        { number: creditAccount },
+        {
+          $set: {
+            remainingAmount: newCreditBalance,
+          },
+        }
+      )
+    }
+
+    revalidatePath(path)
+  } catch (error: any) {
+    return {
+      error: error.message,
+    }
+  }
+}
+
+export async function fetchTransactions(accountId: string, limit = 0) {
+  try {
+    connectToDb()
+
+    const user = await User.findOne({ id: accountId }).populate({
+      path: "bankAccount",
+      model: Iban,
+    })
     const transactionsQuery = Transaction.find({
       $or: [
-        { senderAccount: iban, type: "expense" },
-        { receiverAccount: iban, type: "income" },
+        { senderAccount: user.bankAccount.number, type: "expense" },
+        { receiverAccount: user.bankAccount.number, type: "income" },
       ],
     })
       .sort({ timestamp: "desc" })
+      .limit(limit)
       .populate({ path: "author", model: User })
       .populate({ path: "sharedAccount", model: SharedAccount })
 
@@ -206,7 +404,7 @@ export async function calculateExpenses(iban: string) {
       0
     )
 
-    return totalExpenses
+    return parseFloat(totalExpenses.toFixed(2))
   } catch (error: any) {
     throw new Error(`Failed to calc user expenses: ${error.message}`)
   }
@@ -231,7 +429,7 @@ export async function calculateIncomes(iban: string) {
       0
     )
 
-    return totalIncomes
+    return parseFloat(totalIncomes.toFixed(2))
   } catch (error: any) {
     throw new Error(`Failed to calc user incomes: ${error.message}`)
   }
@@ -241,14 +439,13 @@ export async function fetchTransactionById(id: string) {
   connectToDb()
 
   try {
-    // TODO Populate shared account
-
     const transaction = await Transaction.findById(id)
       .populate({
         path: "author",
         model: "User",
         select: "_id id name image",
       })
+      .populate({ path: "sharedAccount", model: SharedAccount })
       .exec()
 
     return transaction
