@@ -358,7 +358,7 @@ export async function makeCreditTransaction(
   }
 }
 
-export async function fetchTransactions(accountId: string) {
+export async function fetchTransactions(accountId: string, limit = 0) {
   try {
     connectToDb()
 
@@ -373,6 +373,7 @@ export async function fetchTransactions(accountId: string) {
       ],
     })
       .sort({ timestamp: "desc" })
+      .limit(limit)
       .populate({ path: "author", model: User })
       .populate({ path: "sharedAccount", model: SharedAccount })
 

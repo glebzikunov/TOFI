@@ -40,7 +40,7 @@ function UserCard({ id, name, username, imgUrl, personType }: Props) {
         className="user-card_btn"
         onClick={() => {
           if (isSharedAccount) {
-            router.push(`/shared-account/${id}`)
+            router.push(`/shared-accounts/${id}`)
           } else {
             router.push(`/profile/${id}`)
           }

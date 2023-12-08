@@ -6,13 +6,18 @@ import TransactionsTab from "@/components/shared/TransactionsTab"
 import { Tabs, TabsList, TabsContent, TabsTrigger } from "@/components/ui/tabs"
 import { fetchSharedAccountDetails } from "@/lib/actions/sharedAccount.actions"
 import UserCard from "@/components/cards/UserCard"
+import { fetchUser } from "@/lib/actions/user.actions"
 
 async function Page({ params }: { params: { id: string } }) {
   const user = await currentUser()
 
   if (!user) return null
 
+  const userInfo = await fetchUser(user.id)
   const sharedAccountDetails = await fetchSharedAccountDetails(params.id)
+  const containsMember = sharedAccountDetails.members.some(
+    (member: any) => member._id.toString() === userInfo._id.toString()
+  )
 
   return (
     <section>
@@ -25,7 +30,7 @@ async function Page({ params }: { params: { id: string } }) {
         bio={sharedAccountDetails.bio}
         type="SharedAccount"
       />
-      {sharedAccountDetails.createdBy.id === user.id && (
+      {containsMember && (
         <div className="mt-9">
           <Tabs defaultValue="transactions" className="w-full">
             <TabsList className="tab">

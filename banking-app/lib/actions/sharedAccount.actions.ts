@@ -115,7 +115,7 @@ export async function fetchSharedAccountTransactions(id: string) {
   }
 }
 
-export async function fetchSharedAccounts(userId: string) {
+export async function fetchSharedAccounts(userId: string, limit = 0) {
   try {
     connectToDb()
 
@@ -123,8 +123,10 @@ export async function fetchSharedAccounts(userId: string) {
     const user = await User.findOne({ id: userId })
 
     //Find all shared accounts related to user
-    const sharedAccounts = await SharedAccount.find({ createdBy: user._id })
+    const sharedAccounts = await SharedAccount.find({ members: user._id })
       .sort({ createdAt: "desc" })
+      .limit(limit)
+      .populate("createdBy")
       .populate("members")
 
     return sharedAccounts
@@ -203,10 +205,10 @@ export async function removeUserFromSharedAccount(
       { $pull: { members: userIdObject._id } }
     )
 
-    // Remove the community's _id from the sharedAccounts array in the user
+    // Remove the shared account _id from the sharedAccounts array in the user
     await User.updateOne(
       { _id: userIdObject._id },
-      { $pull: { communities: sharedAccountIdObject._id } }
+      { $pull: { sharedAccounts: sharedAccountIdObject._id } }
     )
 
     return { success: true }
