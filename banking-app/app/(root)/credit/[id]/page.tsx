@@ -1,6 +1,6 @@
 import { fetchCreditById } from "@/lib/actions/creditAccount.actions"
 import { fetchUser } from "@/lib/actions/user.actions"
-import { formatTransactionAmount, hideBankAccount } from "@/lib/utils"
+import { formatAmount, hideBankAccount } from "@/lib/utils"
 import { currentUser } from "@clerk/nextjs"
 import CreditCard from "@/components/cards/CreditCard"
 import { redirect } from "next/navigation"
@@ -37,21 +37,21 @@ const Page = async ({ params }: { params: { id: string } }) => {
           </p>
           <p className="pb-2">Credit type: {credit.paymentType}</p>
           <p className="pb-2">
-            Requested Amount: {formatTransactionAmount(credit.requestedAmount)}
+            Requested Amount: {formatAmount(credit.requestedAmount)}
           </p>
           {!credit.isClosed && credit.paymentType === "annuity" ? (
             <p className="pb-2">
-              Need to cover: {formatTransactionAmount(credit.remainingAmount)}
+              Need to cover: {formatAmount(credit.remainingAmount)}
             </p>
           ) : !credit.isClosed && credit.paymentType === "differential" ? (
             <p className="pb-2">
-              Need to cover: {formatTransactionAmount(credit.remainingAmount)} +
+              Need to cover: {formatAmount(credit.remainingAmount)} +
               transactions %
             </p>
           ) : null}
           {credit.paymentType === "annuity" ? (
             <p className="pb-2">
-              Month payment: {formatTransactionAmount(credit.monthPayment)}
+              Month payment: {formatAmount(credit.monthPayment)}
             </p>
           ) : null}
           <p className="pb-2">Credit period: {credit.creditPeriod} months</p>

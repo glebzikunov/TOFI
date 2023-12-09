@@ -29,6 +29,8 @@ async function Page({ params }: { params: { id: string } }) {
         imgUrl={sharedAccountDetails.image}
         bio={sharedAccountDetails.bio}
         type="SharedAccount"
+        inSharedAccount={containsMember}
+        sharedBalance={sharedAccountDetails.balance}
       />
       {containsMember && (
         <div className="mt-9">

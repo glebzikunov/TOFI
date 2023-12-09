@@ -49,7 +49,16 @@ export async function makeTransaction({
       sharedAccountIdObject.balance < transactionAmount
     ) {
       throw new Error(`You don't have enough money on this shared account!`)
-    } else if (user.bankAccount.balance < transactionAmount) {
+    } else if (
+      (sharedAccountIdObject &&
+        receiverAccount === sharedAccountIdObject.number) ||
+      (!sharedAccountIdObject && receiverAccount === user.bankAccount.number)
+    ) {
+      throw new Error(`You can't send money to yourself!`)
+    } else if (
+      !sharedAccountIdObject &&
+      user.bankAccount.balance < transactionAmount
+    ) {
       throw new Error(`You don't have enough money!`)
     }
 

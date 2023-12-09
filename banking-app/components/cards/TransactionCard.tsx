@@ -1,6 +1,6 @@
 import Link from "next/link"
 import Image from "next/image"
-import { formatDateString, formatTransactionAmount } from "@/lib/utils"
+import { formatDateString, formatAmount } from "@/lib/utils"
 
 interface Props {
   id: string
@@ -59,13 +59,13 @@ const TransactionCard = ({
               {type === "income" ? (
                 <>
                   <p className="text-base-semibold text-green-600">
-                    {formatTransactionAmount(transactionAmount)}
+                    {formatAmount(transactionAmount)}
                   </p>
                 </>
               ) : (
                 <>
                   <p className="text-base-semibold text-red-600">
-                    {formatTransactionAmount(transactionAmount)}
+                    {formatAmount(transactionAmount)}
                   </p>
                 </>
               )}
