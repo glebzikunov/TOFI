@@ -1,3 +1,4 @@
+import { formatAmount } from "@/lib/utils"
 import Image from "next/image"
 import Link from "next/link"
 
@@ -9,6 +10,8 @@ interface Props {
   imgUrl: string
   bio: string
   type?: "User" | "SharedAccount"
+  inSharedAccount: boolean
+  sharedBalance: number
 }
 const ProfileHeader = ({
   accountId,
@@ -18,6 +21,8 @@ const ProfileHeader = ({
   imgUrl,
   bio,
   type,
+  inSharedAccount = false,
+  sharedBalance = 0,
 }: Props) => {
   return (
     <div className="flex w-full flex-col justify-start">
@@ -54,6 +59,13 @@ const ProfileHeader = ({
         )}
       </div>
       <p className="mt-6 max-w-lg text-base-regular text-light-2">{bio}</p>
+      {type === "SharedAccount" && inSharedAccount ? (
+        <>
+          <p className="mt-6 max-w-lg text-base-regular text-light-2">
+            Balance: {formatAmount(sharedBalance)}
+          </p>
+        </>
+      ) : null}
       <div className="mt-12 h-0.5 w-full bg-dark-3"></div>
     </div>
   )

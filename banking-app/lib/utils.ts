@@ -32,7 +32,7 @@ export function formatDateString(dateString: string) {
 }
 
 // created by chatgpt
-export function formatTransactionAmount(transactionAmount: number) {
+export function formatAmount(transactionAmount: number) {
   const amount = parseFloat(`${transactionAmount}`)
   const formattedTransactionAmount = new Intl.NumberFormat("en-US", {
     style: "currency",

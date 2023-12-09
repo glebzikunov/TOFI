@@ -1,4 +1,4 @@
-import { hideBankAccount } from "@/lib/utils"
+import { formatAmount, hideBankAccount } from "@/lib/utils"
 import Image from "next/image"
 
 interface Props {
@@ -50,15 +50,15 @@ const AccountCard = ({
       <hr className="border-2 border-zinc-700" />
       {cardType === "wallet" ? (
         <p className="account-card-balance mt-7 text-heading2-bold max-sm:text-heading3-bold">
-          $ {account.balance}
+          {formatAmount(account.balance)}
         </p>
       ) : cardType === "expense" ? (
         <p className="account-card-balance mt-7 text-heading2-bold max-sm:text-heading3-bold">
-          $ {expenses}
+          {formatAmount(expenses)}
         </p>
       ) : (
         <p className="account-card-balance mt-7 text-heading2-bold max-sm:text-heading3-bold">
-          $ {incomes}
+          {formatAmount(incomes)}
         </p>
       )}
     </div>
