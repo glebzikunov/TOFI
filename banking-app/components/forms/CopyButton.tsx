@@ -8,9 +8,13 @@ interface Params {
 }
 
 function CopyButton({ data, text }: Params) {
+  const handleCopy = () => {
+    navigator.clipboard.writeText(data)
+  }
   return (
     <Button
-      onClick={() => navigator.clipboard.writeText(data)}
+      onClick={handleCopy}
+      onTouchStart={handleCopy}
       className="rounded-3xl bg-primary-500 px-8 py-2 !text-small-regular text-light-1 !important;"
     >
       {text}
